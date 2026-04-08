@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "X Likes Exporter",
+  "version": "0.2.0",
+  "description": "Export liked posts from a logged-in X/Twitter session to Markdown and JSON through the Likes API.",
+  "permissions": [
+    "tabs",
+    "windows",
+    "storage",
+    "downloads",
+    "scripting",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "http://127.0.0.1:8767/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Export X Likes"
+  },
+  "options_page": "status.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

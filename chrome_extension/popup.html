@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>X Likes Export</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 12px;
+        width: 280px;
+        color: #111827;
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 8px 0;
+      }
+      p {
+        font-size: 12px;
+        line-height: 1.45;
+        margin: 0 0 10px 0;
+        color: #4b5563;
+      }
+      button {
+        width: 100%;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: #111827;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      #status {
+        margin-top: 10px;
+        font-size: 12px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>X Likes Export</h1>
+    <p>扩展会使用你当前已登录的 X 账号，在后台自动识别当前账号并导出自己的 Likes 到 Markdown 和 JSON。</p>
+    <button id="exportBtn">Export My Likes</button>
+    <div id="status">Ready.</div>
+    <script src="popup.js"></script>
+  </body>
+</html>

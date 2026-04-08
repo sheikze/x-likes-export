@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>X Likes Auto Export</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0 auto;
+        padding: 24px;
+        max-width: 720px;
+        color: #111827;
+        line-height: 1.5;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 10px 0;
+      }
+      p {
+        color: #4b5563;
+        margin: 0 0 14px 0;
+      }
+      pre {
+        margin-top: 18px;
+        padding: 14px;
+        border-radius: 10px;
+        background: #f3f4f6;
+        white-space: pre-wrap;
+        word-break: break-word;
+        min-height: 180px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>X Likes Auto Export</h1>
+    <p>定时任务页面。打开后自动导出当前账号的 Likes，并在完成后尝试关闭自身标签页。</p>
+    <pre id="status">Ready.</pre>
+    <script src="auto_export.js"></script>
+  </body>
+  </html>
