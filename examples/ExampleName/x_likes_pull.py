@@ -19,11 +19,11 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 
 
-ROOT = Path("/Volumes/Huis/Sesshou")
+ROOT = Path(os.environ.get("XLIKES_EXAMPLE_ROOT", "~/path/to/your/vault")).expanduser()
 SOURCE_DIR = ROOT / "raw" / "X Likes" / "source"
 BRIEF_SCRIPT = ROOT / "scripts" / "x_likes_brief.py"
 
-PROFILE_DIR = "Profile 1"
+PROFILE_DIR = os.environ.get("XLIKES_CHROME_PROFILE", "Default")
 COOKIE_DB = Path.home() / "Library/Application Support/Google/Chrome" / PROFILE_DIR / "Cookies"
 CHROME_SAFE_STORAGE_SERVICE = "Chrome Safe Storage"
 X_DOMAIN = ".x.com"
@@ -41,7 +41,7 @@ API_HEADERS_BASE = {
 }
 API_PAGE_WAIT_MS = 1.2
 MAX_API_PAGES = 400
-ALLOW_ENV = "SESSHOU_ALLOW_X_KEYCHAIN"
+ALLOW_ENV = "XLIKES_ALLOW_X_KEYCHAIN"
 
 
 def run(cmd: list[str], *, input_bytes: bytes | None = None) -> bytes:

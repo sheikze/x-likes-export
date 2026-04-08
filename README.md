@@ -89,12 +89,12 @@ python3 scripts/obsidian_bridge.py \
   --post-import-cmd "python3 /path/to/your/vault/scripts/x_likes_brief.py"
 ```
 
-## Sesshou 示例
+## ExampleName 示例
 
-当前仓库里和 Sesshou 直接相关的示例脚本放在：
+当前仓库里带有下游知识库集成逻辑的示例脚本放在：
 
-- [examples/sesshou/x_likes_brief.py](./examples/sesshou/x_likes_brief.py)
-- [examples/sesshou/x_likes_pull.py](./examples/sesshou/x_likes_pull.py)
+- [examples/ExampleName/x_likes_brief.py](./examples/ExampleName/x_likes_brief.py)
+- [examples/ExampleName/x_likes_pull.py](./examples/ExampleName/x_likes_pull.py)
 
 这两个脚本是：
 

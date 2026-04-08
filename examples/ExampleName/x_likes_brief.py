@@ -17,13 +17,13 @@ from zoneinfo import ZoneInfo
 sys.dont_write_bytecode = True
 
 
-ROOT = Path("/Volumes/Huis/Sesshou")
+ROOT = Path(os.environ.get("XLIKES_EXAMPLE_ROOT", "~/path/to/your/vault")).expanduser()
 SOURCE_DIR = ROOT / "raw" / "X Likes" / "source"
 OUTPUT_DIR = ROOT / "outputs" / "x-briefs"
 OUTPUT_PATH = OUTPUT_DIR / "X Likes 每日简报.md"
 CACHE_PATH = OUTPUT_DIR / ".x_likes_enrichment_cache.json"
 LOCAL_TZ = ZoneInfo("Asia/Shanghai")
-X_KEYCHAIN_ENV = "SESSHOU_ALLOW_X_KEYCHAIN"
+X_KEYCHAIN_ENV = "XLIKES_ALLOW_X_KEYCHAIN"
 _X_CLIENT = None
 
 
