@@ -64,6 +64,7 @@ They show how one Obsidian-based knowledge workflow can:
 If you only want the shortest install-and-export path, use:
 
 - [QUICKSTART.md](./QUICKSTART.md)
+- [SMOKE_TEST.md](./SMOKE_TEST.md)
 
 ### Option A: export to local downloads
 
@@ -211,6 +212,10 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
 Current coverage is intentionally small and focused on the bridge safety boundary.
+
+## Release Notes
+
+- [CHANGELOG.md](./CHANGELOG.md)
 
 ## License
 
