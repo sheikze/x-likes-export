@@ -91,6 +91,7 @@ Start the bridge:
 python3 scripts/obsidian_bridge.py \
   --host 127.0.0.1 \
   --port 8767 \
+  --allow-origin "chrome-extension://<your-extension-id>" \
   --target-dir "/path/to/your/vault/raw/X Likes/source"
 ```
 
@@ -98,9 +99,12 @@ If you want to trigger a downstream hook after import:
 
 ```bash
 python3 scripts/obsidian_bridge.py \
+  --allow-origin "chrome-extension://<your-extension-id>" \
   --target-dir "/path/to/your/vault/raw/X Likes/source" \
   --post-import-cmd "python3 /path/to/your/vault/scripts/x_likes_brief.py"
 ```
+
+If you omit `--allow-origin`, the bridge accepts any `chrome-extension://...` origin but rejects normal web page origins.
 
 ## Extension Permissions
 
@@ -136,6 +140,7 @@ Read this before using the project:
 - it does **not** ask you to type your X password into this repo
 - it does **not** ship with any external server component
 - the optional bridge writes only to `127.0.0.1`
+- the bridge rejects ordinary web page origins by default
 
 Important:
 
@@ -183,6 +188,7 @@ It is not intended to be copied blindly into another repo without review.
 - if X changes its GraphQL structure, the extension will need updates
 - export quality depends on the current browser session being valid
 - the example direct-pull path is intentionally more sensitive than the extension path
+- large exports should use the local bridge instead of the inline `downloads` fallback
 
 ## Recommended Use
 

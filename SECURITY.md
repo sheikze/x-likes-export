@@ -46,6 +46,8 @@ The bridge:
 - listens on `127.0.0.1`
 - writes received content into a local target directory
 - may optionally run a post-import shell command
+- rejects ordinary web page origins by default
+- can be pinned to a specific extension origin with `--allow-origin`
 
 Operational implications:
 

@@ -3,9 +3,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+
+SAFE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def sanitize_component(value: str, default: str) -> str:
+    cleaned = SAFE_COMPONENT_RE.sub("_", str(value or "").strip()).strip("._")
+    return cleaned or default
 
 
 def run_post_import_hook(hook_cmd: str | None) -> dict | None:
@@ -35,22 +44,36 @@ def run_post_import_hook(hook_cmd: str | None) -> dict | None:
         }
 
 
-def build_handler(target_dir: Path, post_import_cmd: str | None):
+def is_allowed_origin(origin: str | None, allowed_origins: list[str]) -> bool:
+    if not origin:
+        return True
+    if origin in allowed_origins:
+        return True
+    return origin.startswith("chrome-extension://")
+
+
+def build_handler(target_dir: Path, post_import_cmd: str | None, allowed_origins: list[str]):
     class Handler(BaseHTTPRequestHandler):
         server_version = "XLikesObsidianBridge/0.1"
 
         def _send_json(self, status: int, payload: dict) -> None:
             body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            origin = self.headers.get("Origin")
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type")
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            if is_allowed_origin(origin, allowed_origins):
+                self.send_header("Access-Control-Allow-Origin", origin or "null")
+                self.send_header("Vary", "Origin")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             self.end_headers()
             self.wfile.write(body)
 
         def do_OPTIONS(self) -> None:
+            if not is_allowed_origin(self.headers.get("Origin"), allowed_origins):
+                self._send_json(403, {"ok": False, "error": "Origin not allowed"})
+                return
             self._send_json(200, {"ok": True})
 
         def do_GET(self) -> None:
@@ -68,6 +91,9 @@ def build_handler(target_dir: Path, post_import_cmd: str | None):
         def do_POST(self) -> None:
             if self.path != "/import":
                 self._send_json(404, {"ok": False, "error": "Not found"})
+                return
+            if not is_allowed_origin(self.headers.get("Origin"), allowed_origins):
+                self._send_json(403, {"ok": False, "error": "Origin not allowed"})
                 return
 
             try:
@@ -89,11 +115,17 @@ def build_handler(target_dir: Path, post_import_cmd: str | None):
 
             target_dir.mkdir(parents=True, exist_ok=True)
             written = []
+            target_root = target_dir.resolve()
 
             for item in files:
+                safe_base = sanitize_component(base_name, "x-likes-export")
                 extension = str(item.get("extension") or "txt").strip().lstrip(".")
+                safe_ext = sanitize_component(extension, "txt")
                 content = str(item.get("content") or "")
-                out_path = target_dir / f"{base_name}.{extension}"
+                out_path = (target_root / f"{safe_base}.{safe_ext}").resolve()
+                if out_path.parent != target_root:
+                    self._send_json(400, {"ok": False, "error": "Invalid output path"})
+                    return
                 out_path.write_text(content, encoding="utf-8")
                 written.append(str(out_path))
 
@@ -128,12 +160,18 @@ def main() -> None:
         "--post-import-cmd",
         default="",
     )
+    parser.add_argument(
+        "--allow-origin",
+        action="append",
+        default=[],
+        help="Allowed Origin header values. If omitted, any chrome-extension:// origin is accepted.",
+    )
     args = parser.parse_args()
 
     target_dir = Path(args.target_dir).expanduser()
     server = ThreadingHTTPServer(
         (args.host, args.port),
-        build_handler(target_dir, args.post_import_cmd),
+        build_handler(target_dir, args.post_import_cmd, args.allow_origin),
     )
     print(f"X Likes Obsidian bridge listening on http://{args.host}:{args.port}", flush=True)
     server.serve_forever()

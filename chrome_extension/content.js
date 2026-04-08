@@ -1,4 +1,9 @@
 (function () {
+  if (globalThis.__xLikesContentInjected) {
+    return;
+  }
+  globalThis.__xLikesContentInjected = true;
+
   const state = {
     running: false,
     blueprint: null,
@@ -22,6 +27,50 @@
 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function isRetriableStatus(status) {
+    return status === 429 || (status >= 500 && status < 600);
+  }
+
+  async function fetchLikesApiPage(requestUrl, headers, pageNumber) {
+    const maxAttempts = 4;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const response = await fetch(requestUrl, {
+          method: "GET",
+          credentials: "include",
+          headers
+        });
+
+        if (!response.ok) {
+          if (attempt < maxAttempts && isRetriableStatus(response.status)) {
+            await reportProgress({
+              state: "fetching_api",
+              detail: `Likes API page ${pageNumber} returned ${response.status}. Retrying (${attempt}/${maxAttempts}).`
+            });
+            await sleep(1500 * (2 ** (attempt - 1)));
+            continue;
+          }
+
+          throw new Error(`Likes API returned ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+      } catch (error) {
+        if (attempt >= maxAttempts) {
+          throw error;
+        }
+        await reportProgress({
+          state: "fetching_api",
+          detail: `Likes API page ${pageNumber} failed. Retrying (${attempt}/${maxAttempts}).`
+        });
+        await sleep(1500 * (2 ** (attempt - 1)));
+      }
+    }
+
+    throw new Error(`Likes API page ${pageNumber} failed after retries.`);
   }
 
   async function reportProgress(patch) {
@@ -487,17 +536,24 @@
       });
 
       const requestUrl = buildLikesRequestUrl(template, cursor);
-      const response = await fetch(requestUrl, {
-        method: "GET",
-        credentials: "include",
-        headers
-      });
-
-      if (!response.ok) {
-        throw new Error(`Likes API returned ${response.status} ${response.statusText}`);
+      let payload;
+      try {
+        payload = await fetchLikesApiPage(requestUrl, headers, pages + 1);
+      } catch (error) {
+        if (seen.size > 0) {
+          await reportProgress({
+            state: "fetched_api",
+            detail: `Likes API failed after ${seen.size} items. Saving partial export.`,
+            itemCount: seen.size
+          });
+          return {
+            items: [...seen.values()],
+            partial: true,
+            partialReason: error?.message || String(error)
+          };
+        }
+        throw error;
       }
-
-      const payload = await response.json();
       const { items, cursor: nextCursor } = extractEntriesAndCursor(payload);
 
       if (pages === 0) {
@@ -556,7 +612,11 @@
       itemCount: seen.size
     });
 
-    return [...seen.values()];
+    return {
+      items: [...seen.values()],
+      partial: false,
+      partialReason: ""
+    };
   }
 
   function escapeInline(text) {
@@ -635,7 +695,8 @@
           detail: "Captured the Likes API blueprint from browser network requests."
         });
       }
-      const items = await collectLikesViaApi(blueprint);
+      const resultSet = await collectLikesViaApi(blueprint);
+      const items = resultSet.items;
 
       if (!items.length) {
         const baseName = buildBaseName();
@@ -649,17 +710,21 @@
 
       await reportProgress({
         state: "saving_files",
-        detail: `Saving ${items.length} liked posts to Markdown and JSON.`,
+        detail: resultSet.partial
+          ? `Saving partial export with ${items.length} liked posts to Markdown and JSON.`
+          : `Saving ${items.length} liked posts to Markdown and JSON.`,
         itemCount: items.length
       });
 
-      const baseName = buildBaseName();
+      const baseName = resultSet.partial ? `${buildBaseName()}-partial` : buildBaseName();
       const markdown = buildMarkdown(items);
       const json = JSON.stringify(
         {
           exportedAt: new Date().toISOString(),
           sourcePage: window.location.href,
           itemCount: items.length,
+          partial: !!resultSet.partial,
+          partialReason: resultSet.partialReason || "",
           items
         },
         null,
@@ -689,8 +754,8 @@
 
       const saveDetail =
         downloadResult?.mode === "obsidian_bridge"
-          ? `Saved ${items.length} liked posts directly to Obsidian at ${downloadResult.target_dir || "bridge target"}`
-          : `Saved ${items.length} liked posts as ${baseName}.md and ${baseName}.json`;
+          ? `Saved ${resultSet.partial ? "partial " : ""}${items.length} liked posts directly to Obsidian at ${downloadResult.target_dir || "bridge target"}`
+          : `Saved ${resultSet.partial ? "partial " : ""}${items.length} liked posts as ${baseName}.md and ${baseName}.json`;
 
       await chrome.storage.local.set({
         lastExport: {

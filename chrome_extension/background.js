@@ -225,6 +225,7 @@ function awaitTabComplete(tabId, timeoutMs = 30000) {
 
 async function saveFiles(baseName, files) {
   const bridgeUrl = "http://127.0.0.1:8767";
+  const maxInlineDownloadBytes = 1_500_000;
 
   try {
     const health = await fetch(`${bridgeUrl}/health`);
@@ -256,6 +257,14 @@ async function saveFiles(baseName, files) {
     const mime = file.mime || "text/plain;charset=utf-8";
     const extension = file.extension || "txt";
     const content = String(file.content || "");
+    const byteLength = new TextEncoder().encode(content).length;
+
+    if (byteLength > maxInlineDownloadBytes) {
+      throw new Error(
+        `Export file ${baseName}.${extension} is too large for inline download fallback. Start the local bridge or reduce export size.`
+      );
+    }
+
     const dataUrl = `data:${mime};charset=utf-8,${encodeURIComponent(content)}`;
 
     await chrome.downloads.download({
