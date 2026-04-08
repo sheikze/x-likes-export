@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "X Likes Exporter",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Export liked posts from a logged-in X/Twitter session to Markdown and JSON through the Likes API.",
   "permissions": [
     "tabs",

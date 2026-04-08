@@ -17,6 +17,16 @@ def sanitize_component(value: str, default: str) -> str:
     return cleaned or default
 
 
+def build_output_path(target_dir: Path, base_name: str, extension: str) -> Path:
+    target_root = target_dir.resolve()
+    safe_base = sanitize_component(base_name, "x-likes-export")
+    safe_ext = sanitize_component(extension, "txt")
+    out_path = (target_root / f"{safe_base}.{safe_ext}").resolve()
+    if out_path.parent != target_root:
+        raise ValueError("Invalid output path")
+    return out_path
+
+
 def run_post_import_hook(hook_cmd: str | None) -> dict | None:
     if not hook_cmd:
         return None
@@ -115,15 +125,13 @@ def build_handler(target_dir: Path, post_import_cmd: str | None, allowed_origins
 
             target_dir.mkdir(parents=True, exist_ok=True)
             written = []
-            target_root = target_dir.resolve()
 
             for item in files:
-                safe_base = sanitize_component(base_name, "x-likes-export")
                 extension = str(item.get("extension") or "txt").strip().lstrip(".")
-                safe_ext = sanitize_component(extension, "txt")
                 content = str(item.get("content") or "")
-                out_path = (target_root / f"{safe_base}.{safe_ext}").resolve()
-                if out_path.parent != target_root:
+                try:
+                    out_path = build_output_path(target_dir, base_name, extension)
+                except ValueError:
                     self._send_json(400, {"ok": False, "error": "Invalid output path"})
                     return
                 out_path.write_text(content, encoding="utf-8")

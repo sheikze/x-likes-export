@@ -61,6 +61,10 @@ They show how one Obsidian-based knowledge workflow can:
 
 ## Quick Start
 
+If you only want the shortest install-and-export path, use:
+
+- [QUICKSTART.md](./QUICKSTART.md)
+
 ### Option A: export to local downloads
 
 1. open your Chromium browser extensions page
@@ -197,6 +201,16 @@ For most users:
 1. use the extension as the default export path
 2. add the local bridge only if you need vault sync
 3. keep briefs, reports, and domain-specific rules in a separate downstream repository
+
+## Minimal Regression Tests
+
+Run:
+
+```bash
+python3 -m unittest discover -s tests -p 'test_*.py'
+```
+
+Current coverage is intentionally small and focused on the bridge safety boundary.
 
 ## License
 
