@@ -191,3 +191,7 @@ For most users:
 1. use the extension as the default export path
 2. add the local bridge only if you need vault sync
 3. keep briefs, reports, and domain-specific rules in a separate downstream repository
+
+## License
+
+This repository is released under the [MIT License](./LICENSE).
