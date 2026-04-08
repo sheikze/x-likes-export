@@ -1,78 +1,91 @@
 # X Likes Export
 
-`x-likes-export` 是一个本地优先的 X/Twitter Likes 导出项目。
+`x-likes-export` exports liked posts from a logged-in X/Twitter browser session to:
 
-它的目标是：
+- `Markdown`
+- `JSON`
 
-- 复用当前浏览器里已登录的 X 会话
-- 不依赖 X archive
-- 直接导出自己账号的 Likes
-- 输出为：
-  - `Markdown`
-  - `JSON`
-- 可选直写 Obsidian vault
+It is designed for local-first workflows. The default path is:
 
-## 组成
+1. use a Chromium extension to read the current logged-in X session
+2. call X's Likes GraphQL endpoint
+3. export snapshots locally
+4. optionally POST the results into a local bridge for Obsidian or other downstream processing
 
-### 1. Chrome 扩展
+## What This Repo Contains
 
-目录：
+### 1. Browser extension
+
+Path:
 
 - [chrome_extension](./chrome_extension)
 
-能力：
+Responsibilities:
 
-- 自动识别当前登录账号
-- 打开后台 Likes 页
-- 通过 X Likes GraphQL 接口分页抓取
-- 导出 `md/json`
-- 可选把结果 POST 给本地 bridge
+- detect the current logged-in account
+- resolve the current account's Likes page
+- capture the Likes API request blueprint
+- paginate through liked posts
+- export `md/json`
+- optionally send results to a local bridge
 
-### 2. 本地 bridge
+### 2. Local bridge
 
-脚本：
+Path:
 
 - [scripts/obsidian_bridge.py](./scripts/obsidian_bridge.py)
 
-能力：
+Responsibilities:
 
-- 监听 `http://127.0.0.1:8767`
-- 接收扩展发来的导出内容
-- 直接写入指定目录
-- 可选在导入完成后执行一个 post-import hook
+- listen on `http://127.0.0.1:8767`
+- receive exported files from the extension
+- write them into a target directory
+- optionally run a post-import hook
 
-## 安装扩展
+### 3. Example downstream integration
 
-1. 打开 Chromium 浏览器扩展页
-2. 开启 `Developer mode`
-3. 选择 `Load unpacked`
-4. 选择：
+Path:
+
+- [examples/ExampleName](./examples/ExampleName)
+
+These files are examples, not the core project:
+
+- [x_likes_pull.py](./examples/ExampleName/x_likes_pull.py)
+- [x_likes_brief.py](./examples/ExampleName/x_likes_brief.py)
+
+They show how one Obsidian-based knowledge workflow can:
+
+- pull snapshots directly
+- rebuild a daily brief
+- enrich research output downstream
+
+## Quick Start
+
+### Option A: export to local downloads
+
+1. open your Chromium browser extensions page
+2. enable `Developer mode`
+3. choose `Load unpacked`
+4. select:
 
 ```text
 chrome_extension
 ```
 
-加载后，扩展会提供：
+Then:
 
-- `popup.html`
-- `status.html`
+1. log in to X in the same browser profile
+2. open the extension popup
+3. click `Export My Likes`
 
-都可以触发导出。
+The extension will export:
 
-## 使用方式
+- `x-likes-export-<timestamp>.md`
+- `x-likes-export-<timestamp>.json`
 
-### 方式 A：只下载到本地
+### Option B: export directly into an Obsidian vault
 
-1. 在浏览器登录 X
-2. 打开扩展
-3. 点 `Export My Likes`
-4. 获取：
-   - `x-likes-export-<timestamp>.md`
-   - `x-likes-export-<timestamp>.json`
-
-### 方式 B：直接写入 Obsidian
-
-先启动 bridge：
+Start the bridge:
 
 ```bash
 python3 scripts/obsidian_bridge.py \
@@ -81,7 +94,7 @@ python3 scripts/obsidian_bridge.py \
   --target-dir "/path/to/your/vault/raw/X Likes/source"
 ```
 
-如果还希望导入后自动执行后处理脚本：
+If you want to trigger a downstream hook after import:
 
 ```bash
 python3 scripts/obsidian_bridge.py \
@@ -89,34 +102,92 @@ python3 scripts/obsidian_bridge.py \
   --post-import-cmd "python3 /path/to/your/vault/scripts/x_likes_brief.py"
 ```
 
-## ExampleName 示例
+## Extension Permissions
 
-当前仓库里带有下游知识库集成逻辑的示例脚本放在：
+The extension currently requests:
 
-- [examples/ExampleName/x_likes_brief.py](./examples/ExampleName/x_likes_brief.py)
-- [examples/ExampleName/x_likes_pull.py](./examples/ExampleName/x_likes_pull.py)
+- `tabs`
+- `windows`
+- `storage`
+- `downloads`
+- `scripting`
+- `webRequest`
 
-这两个脚本是：
+Host permissions:
 
-- 一个 Obsidian 知识库里的具体集成样例
-- 不是通用库的最小核心
+- `https://x.com/*`
+- `https://twitter.com/*`
+- `http://127.0.0.1:8767/*`
 
-其中：
+Reasoning:
 
-- `x_likes_brief.py`：把快照整理成单文件日报
-- `x_likes_pull.py`：显式 opt-in 的直拉脚本，会读本机 Chrome cookie / keychain
+- `tabs` / `windows`: open and manage the hidden or helper pages used during export
+- `storage`: persist export status and incremental state
+- `downloads`: save exported files locally
+- `scripting`: inject runtime logic into X pages
+- `webRequest`: capture the Likes request blueprint from X
+- `127.0.0.1:8767`: optional local bridge target
 
-## 边界
+## Security Boundary
 
-- 这个项目依赖当前浏览器已经登录 X
-- 不绕过权限边界
-- 不保证 X 内部接口永远不变
-- 如果 X GraphQL 结构变了，需要重新适配
+Read this before using the project:
 
-## 建议
+- the extension relies on an already logged-in X browser session
+- it does **not** ask you to type your X password into this repo
+- it does **not** ship with any external server component
+- the optional bridge writes only to `127.0.0.1`
 
-如果你要把它接进自己的 Obsidian：
+Important:
 
-1. 保留扩展和 bridge 为通用层
-2. 把“日报 / 研报 / 视频补充”这些逻辑放到你自己的仓库里
-3. 不要把仓库私有规则硬编码进扩展本体
+- the extension can access X requests from the browser profile where it is installed
+- the example direct-pull scripts may read local browser session material when explicitly enabled
+- those example scripts are not the default path of the project
+
+For details, see:
+
+- [SECURITY.md](./SECURITY.md)
+
+## Project Scope
+
+This repository is intentionally small:
+
+- core export logic lives in the extension
+- local writing/sync lives in the bridge
+- knowledge-base-specific reporting stays in downstream repos
+
+This means:
+
+- if you only want `md/json` export, you only need the extension
+- if you want vault sync, add the bridge
+- if you want briefs, research reports, or topic pages, keep those in your own repo
+
+## ExampleName Example
+
+The example integration is intentionally generic and parameterized:
+
+- root path comes from `XLIKES_EXAMPLE_ROOT`
+- Chrome profile comes from `XLIKES_CHROME_PROFILE`
+- direct keychain/cookie access is gated behind `XLIKES_ALLOW_X_KEYCHAIN`
+
+That example is useful if you want:
+
+- direct snapshot pulls without a browser popup
+- daily brief regeneration
+- downstream enrichment or research workflows
+
+It is not intended to be copied blindly into another repo without review.
+
+## Limitations
+
+- the project depends on X's current internal request shape
+- if X changes its GraphQL structure, the extension will need updates
+- export quality depends on the current browser session being valid
+- the example direct-pull path is intentionally more sensitive than the extension path
+
+## Recommended Use
+
+For most users:
+
+1. use the extension as the default export path
+2. add the local bridge only if you need vault sync
+3. keep briefs, reports, and domain-specific rules in a separate downstream repository
